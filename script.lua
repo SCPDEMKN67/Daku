@@ -1,120 +1,90 @@
--- Admin Panel Script for Grow a Garden (Delta Executor Compatible)
--- GitHub Version - by Akash ⚡
+--// Admin Panel Script
+if game.CoreGui:FindFirstChild("AdminPanel") then
+    game.CoreGui:FindFirstChild("AdminPanel"):Destroy()
+end
 
--- Services
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local LocalPlayer = Players.LocalPlayer
-local CoreGui = game:GetService("CoreGui")
+local player = game.Players.LocalPlayer
+local uis = game:GetService("UserInputService")
 
--- Setup GUI
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "AdminPanel"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = CoreGui
+-- UI Creation
+local gui = Instance.new("ScreenGui", game.CoreGui)
+gui.Name = "AdminPanel"
+gui.ResetOnSpawn = false
 
--- Icon Button
-local mainIcon = Instance.new("ImageButton")
-mainIcon.Size = UDim2.new(0, 40, 0, 40)
-mainIcon.Position = UDim2.new(0, 20, 0, 150)
-mainIcon.Image = "rbxassetid://3926305904"
-mainIcon.ImageRectOffset = Vector2.new(924, 724)
-mainIcon.ImageRectSize = Vector2.new(36, 36)
-mainIcon.BackgroundTransparency = 1
-mainIcon.Parent = ScreenGui
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 300, 0, 350)
+frame.Position = UDim2.new(0.5, -150, 0.5, -175)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
 
--- Main Panel
-local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 300, 0, 400)
-mainFrame.Position = UDim2.new(0, 80, 0, 150)
-mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-mainFrame.BorderSizePixel = 0
-mainFrame.Active = true
-mainFrame.Draggable = true
-mainFrame.Visible = false
-mainFrame.Parent = ScreenGui
-
-Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
+local title = Instance.new("TextLabel", frame)
+title.Text = "Admin Panel"
+title.Size = UDim2.new(1, 0, 0, 40)
+title.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+title.TextColor3 = Color3.new(1,1,1)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
 
 -- Minimize Button
-local minimizeBtn = Instance.new("TextButton", mainFrame)
-minimizeBtn.Size = UDim2.new(0, 60, 0, 30)
-minimizeBtn.Position = UDim2.new(1, -70, 0, 10)
-minimizeBtn.Text = "-"
-minimizeBtn.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
-Instance.new("UICorner", minimizeBtn)
+local minimize = Instance.new("TextButton", frame)
+minimize.Size = UDim2.new(0, 40, 0, 40)
+minimize.Position = UDim2.new(1, -40, 0, 0)
+minimize.Text = "-"
+minimize.Font = Enum.Font.GothamBold
+minimize.TextSize = 20
+minimize.TextColor3 = Color3.new(1,1,1)
+minimize.BackgroundColor3 = Color3.fromRGB(100, 20, 20)
 
--- Show/Hide Logic
-mainIcon.MouseButton1Click:Connect(function()
-	mainFrame.Visible = true
+-- Button Container
+local buttonHolder = Instance.new("Frame", frame)
+buttonHolder.Position = UDim2.new(0, 0, 0, 40)
+buttonHolder.Size = UDim2.new(1, 0, 1, -40)
+buttonHolder.BackgroundTransparency = 1
+
+-- Function to create buttons
+local function createButton(name, callback)
+    local btn = Instance.new("TextButton", buttonHolder)
+    btn.Size = UDim2.new(1, -20, 0, 40)
+    btn.Position = UDim2.new(0, 10, 0, (#buttonHolder:GetChildren() - 1) * 45)
+    btn.Text = name
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 16
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    btn.MouseButton1Click:Connect(callback)
+end
+
+-- Example: Visual-only events
+createButton("Explode Screen", function()
+    local explosion = Instance.new("Explosion", workspace)
+    explosion.Position = player.Character and player.Character.PrimaryPart.Position or Vector3.new(0, 10, 0)
+    explosion.BlastRadius = 1
+    explosion.Visible = true
 end)
 
-minimizeBtn.MouseButton1Click:Connect(function()
-	mainFrame.Visible = false
+createButton("Flash Screen", function()
+    local flash = Instance.new("Frame", gui)
+    flash.Size = UDim2.new(1, 0, 1, 0)
+    flash.BackgroundColor3 = Color3.new(1,1,1)
+    flash.BackgroundTransparency = 1
+    flash.ZIndex = 100
+    flash:TweenTransparency(0, Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.1, true)
+    wait(0.1)
+    flash:TweenTransparency(1, Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.5, true)
+    game:GetService("Debris"):AddItem(flash, 1)
 end)
 
--- Reusable Button Creator
-local function createButton(text, posY, callback)
-	local btn = Instance.new("TextButton", mainFrame)
-	btn.Size = UDim2.new(0, 260, 0, 40)
-	btn.Position = UDim2.new(0, 20, 0, posY)
-	btn.Text = text
-	btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-	btn.TextColor3 = Color3.new(1, 1, 1)
-	btn.Font = Enum.Font.GothamBold
-	btn.TextSize = 14
-	Instance.new("UICorner", btn)
-	btn.MouseButton1Click:Connect(callback)
-end
+-- Get Pet Button (stub - will fill later)
+createButton("Get Pet", function()
+    warn("Get Pet clicked — function not implemented yet.")
+end)
 
--- Center Pet Function
-local function centerPet()
-	local char = LocalPlayer.Character
-	if not char then return end
-	for _, pet in pairs(workspace:GetDescendants()) do
-		if pet:IsA("Model") and pet:FindFirstChild("Owner") and pet.Owner.Value == LocalPlayer then
-			if pet.Name == "Orange Tabby" or pet.Name == "Mooncat" then
-				pet:SetPrimaryPartCFrame(char.HumanoidRootPart.CFrame)
-				break
-			end
-		end
-	end
-end
-
--- Get Pet
-local function getPet(petName)
-	local event = ReplicatedStorage:FindFirstChild("Events"):FindFirstChild("SpawnPet")
-	if event then
-		event:FireServer(petName)
-	end
-end
-
--- Admin Aura (Local Only)
-local function showAura()
-	local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-	if not hrp then return end
-	local aura = Instance.new("ParticleEmitter", hrp)
-	aura.Texture = "rbxassetid://48374994"
-	aura.Rate = 10
-	aura.Lifetime = NumberRange.new(1)
-	aura.Size = NumberSequence.new(1.5)
-	aura.Speed = NumberRange.new(0.5)
-	task.delay(10, function()
-		aura.Enabled = false
-		wait(1)
-		aura:Destroy()
-	end)
-end
-
--- Input Prompt for Any Pet
-local function promptPetName()
-	local name = tostring(game:GetService("Players"):PromptInput("Enter Pet Name"))
-	if name then getPet(name) end
-end
-
--- Create Buttons
-createButton("🌟 Center Pet", 0.1, centerPet)
-createButton("✨ Admin Aura (Local)", 0.25, showAura)
-createButton("🐱 Spawn Orange Tabby", 0.4, function() getPet("Orange Tabby") end)
-createButton("🌙 Spawn Mooncat", 0.55, function() getPet("Mooncat") end)
-createButton("🦄 Get ANY Pet (Prompt)", 0.7, promptPetName)
+-- Minimize Logic
+local isMinimized = false
+minimize.MouseButton1Click:Connect(function()
+    isMinimized = not isMinimized
+    buttonHolder.Visible = not isMinimized
+    minimize.Text = isMinimized and "+" or "-"
+end)
