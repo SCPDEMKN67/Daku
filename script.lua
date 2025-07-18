@@ -1,31 +1,122 @@
--- Grow a Garden Mobile Admin Panel Script (Delta Executor) -- Author: ChatGPT x SCPDEMKN67 -- Features: Mobile UI, draggable panel, minimizable icon, admin-only events, pet center, egg prediction, animations, get-any-pet command
+-- Admin UI Script for "Grow a Garden" (LocalScript)
 
--- SERVICES local plrs = game:GetService("Players") local plr = plrs.LocalPlayer local chr = plr.Character or plr.CharacterAdded:Wait() local hrp = chr:WaitForChild("HumanoidRootPart")
+-- Services
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
 
--- MAIN GUI local gui = Instance.new("ScreenGui", plr:WaitForChild("PlayerGui")) local icon = Instance.new("TextButton") local panel = Instance.new("Frame") local dragging, dragInput, dragStart, startPos
+-- Pets you want to be able to spawn
+local petList = {"Orange Tabby", "Mooncat", "Bone Blossom", "AnyPetNameHere"}
 
--- GUI ICON icon.Size = UDim2.new(0, 50, 0, 50) icon.Position = UDim2.new(0, 10, 0.5, -25) icon.BackgroundColor3 = Color3.fromRGB(0, 150, 255) icon.Text = "⚙️" icon.TextSize = 24 icon.Name = "AdminIcon" icon.Parent = gui
+-- UI Creation
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+ScreenGui.Name = "AdminPanel"
 
--- PANEL panel.Size = UDim2.new(0, 230, 0, 460) panel.Position = UDim2.new(0, 70, 0.5, -230) panel.BackgroundColor3 = Color3.fromRGB(40, 40, 40) panel.Visible = false panel.Active = true panel.Draggable = true panel.Name = "AdminPanel" panel.Parent = gui
+-- Main Button (toggle)
+local ToggleButton = Instance.new("ImageButton", ScreenGui)
+ToggleButton.Name = "ToggleButton"
+ToggleButton.Size = UDim2.new(0, 40, 0, 40)
+ToggleButton.Position = UDim2.new(0, 10, 0.5, -20)
+ToggleButton.Image = "rbxassetid://77339698" -- Gear icon or change if needed
+ToggleButton.BackgroundTransparency = 1
+ToggleButton.ZIndex = 10
 
--- MINIMIZE BUTTON local minimize = Instance.new("TextButton") minimize.Size = UDim2.new(0, 230, 0, 30) minimize.Position = UDim2.new(0, 0, 0, 0) minimize.BackgroundColor3 = Color3.fromRGB(200, 50, 50) minimize.Text = "⛶ Minimize" minimize.TextSize = 18 minimize.Parent = panel
+-- Admin Frame
+local AdminFrame = Instance.new("Frame", ScreenGui)
+AdminFrame.Name = "AdminFrame"
+AdminFrame.Size = UDim2.new(0, 300, 0, 200)
+AdminFrame.Position = UDim2.new(0, 60, 0.5, -100)
+AdminFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+AdminFrame.BorderSizePixel = 0
+AdminFrame.Visible = false
+AdminFrame.Draggable = true
+AdminFrame.Active = true
+AdminFrame.ZIndex = 10
 
--- DRAG SCRIPT (for Mobile) local function dragify(frame) local input = game:GetService("UserInputService") frame.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true dragStart = i.Position startPos = frame.Position i.Changed:Connect(function() if i.UserInputState == Enum.UserInputState.End then dragging = false end end) end end) frame.InputChanged:Connect(function(i) if dragging and (i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseMovement) then local delta = i.Position - dragStart frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y) end end) end dragify(panel)
+-- UICorner + UIStroke
+local UICorner = Instance.new("UICorner", AdminFrame)
+UICorner.CornerRadius = UDim.new(0, 12)
 
--- BUTTON CREATOR local y = 40 local function createButton(text, ypos, func) local btn = Instance.new("TextButton") btn.Size = UDim2.new(0, 230, 0, 30) btn.Position = UDim2.new(0, 0, 0, ypos) btn.BackgroundColor3 = Color3.fromRGB(70, 70, 70) btn.Text = text btn.TextSize = 16 btn.Parent = panel btn.MouseButton1Click:Connect(func) end
+local UIStroke = Instance.new("UIStroke", AdminFrame)
+UIStroke.Thickness = 2
+UIStroke.Color = Color3.fromRGB(255, 255, 255)
 
--- BUTTON: Pet Center createButton("🎯 Center Pets", y, function() for _, pet in ipairs(workspace:GetChildren()) do if pet:IsA("Model") and pet:FindFirstChild("Owner") and pet.Owner.Value == plr.Name then local root = pet:FindFirstChild("HumanoidRootPart") or pet:FindFirstChildWhichIsA("BasePart") if root then root.CFrame = hrp.CFrame * CFrame.new(0, 0, -3) end end end end) y += 40
+-- Minimize Button
+local MinBtn = Instance.new("TextButton", AdminFrame)
+MinBtn.Size = UDim2.new(0, 60, 0, 30)
+MinBtn.Position = UDim2.new(1, -70, 0, 10)
+MinBtn.Text = "Minimize"
+MinBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+MinBtn.TextColor3 = Color3.new(1,1,1)
 
--- BUTTON: Pet Prediction (simplified) createButton("🔮 Predict Pet Egg", y, function() game.StarterGui:SetCore("SendNotification", { Title = "Prediction"; Text = "Prediction is random and client-based only!"; Duration = 3; }) end) y += 40
+local UICorner2 = Instance.new("UICorner", MinBtn)
+UICorner2.CornerRadius = UDim.new(0, 6)
 
--- BUTTON: Get Pet (Example) createButton("/getpet [name]", y, function() local petName = "Mooncat" -- you can change dynamically via textbox later local args = {[1] = petName} game:GetService("ReplicatedStorage").RemoteEvents.Hatch:FireServer(unpack(args)) end) y += 40
+-- Pet Input
+local PetBox = Instance.new("TextBox", AdminFrame)
+PetBox.PlaceholderText = "Enter Pet Name"
+PetBox.Size = UDim2.new(0, 200, 0, 30)
+PetBox.Position = UDim2.new(0, 10, 0, 50)
+PetBox.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+PetBox.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", PetBox).CornerRadius = UDim.new(0, 6)
 
--- BUTTON: Admin Visual Event (Explosion FX) createButton("💥 Visual Event", y, function() local fx = Instance.new("Explosion") fx.Position = hrp.Position + Vector3.new(0, 5, 0) fx.BlastPressure = 0 fx.Visible = true fx.Parent = workspace end) y += 40
+-- Spawn Button
+local SpawnBtn = Instance.new("TextButton", AdminFrame)
+SpawnBtn.Text = "Get Pet"
+SpawnBtn.Size = UDim2.new(0, 80, 0, 30)
+SpawnBtn.Position = UDim2.new(0, 220, 0, 50)
+SpawnBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+SpawnBtn.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", SpawnBtn).CornerRadius = UDim.new(0, 6)
 
--- ANIMATION FUNCTION local function playAnimation(animId) local humanoid = chr:FindFirstChild("Humanoid") if humanoid then for _, track in ipairs(humanoid:GetPlayingAnimationTracks()) do track:Stop() end local anim = Instance.new("Animation") anim.AnimationId = "rbxassetid://" .. animId local loaded = humanoid:LoadAnimation(anim) loaded:Play() end end
+-- Visual Events Button
+local VisualBtn = Instance.new("TextButton", AdminFrame)
+VisualBtn.Text = "Trigger Visual"
+VisualBtn.Size = UDim2.new(0, 260, 0, 30)
+VisualBtn.Position = UDim2.new(0, 20, 0, 100)
+VisualBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+VisualBtn.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", VisualBtn).CornerRadius = UDim.new(0, 6)
 
--- ANIMATION BUTTONS createButton("💃 Dance", y, function() playAnimation("507771019") end) y += 40 createButton("💪 Flex", y, function() playAnimation("656118852") end) y += 40 createButton("😵 Fall", y, function() playAnimation("619512767") end) y += 40 createButton("🪂 Float", y, function() playAnimation("707829716") end) y += 40
+-- Functionality
+ToggleButton.MouseButton1Click:Connect(function()
+	AdminFrame.Visible = not AdminFrame.Visible
+end)
 
--- ICON TOGGLE icon.MouseButton1Click:Connect(function() panel.Visible = not panel.Visible end)
+MinBtn.MouseButton1Click:Connect(function()
+	AdminFrame.Visible = false
+end)
 
--- MINIMIZE BUTTON minimize.MouseButton1Click:Connect(function() panel.Visible = false end)
+-- Spawn Pet Function (Assumes RemoteEvent exists)
+SpawnBtn.MouseButton1Click:Connect(function()
+	local petName = PetBox.Text
+	if table.find(petList, petName) then
+		local args = {[1] = petName}
+		local remote = game:GetService("ReplicatedStorage"):FindFirstChild("GivePet") -- Change if your remote is different
+		if remote then
+			remote:FireServer(unpack(args))
+		else
+			warn("GivePet Remote not found!")
+		end
+	else
+		warn("Invalid pet name!")
+	end
+end)
+
+-- Visual Effect (only you see it)
+VisualBtn.MouseButton1Click:Connect(function()
+	local part = Instance.new("Part", workspace)
+	part.Size = Vector3.new(4, 1, 4)
+	part.Anchored = true
+	part.CanCollide = false
+	part.Material = Enum.Material.Neon
+	part.BrickColor = BrickColor.Random()
+	part.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0, -3, 0)
+
+	local tween = TweenService:Create(part, TweenInfo.new(1, Enum.EasingStyle.Bounce), {Transparency = 1, Size = Vector3.new(8, 0.1, 8)})
+	tween:Play()
+
+	game:GetService("Debris"):AddItem(part, 2)
+end)
