@@ -1,80 +1,87 @@
--- Grow a Garden Script UI: Pet Center + Egg Prediction
-local player = game.Players.LocalPlayer
-local gardenCenter = Vector3.new(0, 5, 0) -- Change this to your garden center coords
-local petPredictionEnabled = false
-local petLockEnabled = false
+-- Grow a Garden Pet Prediction + Auto Center UI
+-- Author: SCPDEMKN67
 
--- Create UI
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "GrowGardenUI"
-ScreenGui.Parent = game.CoreGui
+-- Services
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
-local function createButton(name, pos, callback)
-	local button = Instance.new("TextButton")
-	button.Size = UDim2.new(0, 180, 0, 40)
-	button.Position = pos
-	button.Text = name
-	button.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-	button.TextColor3 = Color3.fromRGB(255, 255, 255)
-	button.Font = Enum.Font.GothamBold
-	button.TextSize = 14
-	button.Parent = ScreenGui
-	button.MouseButton1Click:Connect(callback)
-	return button
+-- Player
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+
+-- UI Setup
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+ScreenGui.Name = "PetPredictor"
+
+local mainFrame = Instance.new("Frame", ScreenGui)
+mainFrame.Size = UDim2.new(0, 200, 0, 120)
+mainFrame.Position = UDim2.new(0, 10, 0, 10)
+mainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+mainFrame.BorderSizePixel = 0
+mainFrame.BackgroundTransparency = 0.2
+
+local title = Instance.new("TextLabel", mainFrame)
+title.Size = UDim2.new(1, 0, 0, 25)
+title.Text = "🎯 Pet Prediction"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+
+local predictBtn = Instance.new("TextButton", mainFrame)
+predictBtn.Size = UDim2.new(1, -20, 0, 35)
+predictBtn.Position = UDim2.new(0, 10, 0, 35)
+predictBtn.Text = "🔮 Predict Egg"
+predictBtn.BackgroundColor3 = Color3.fromRGB(65, 130, 195)
+predictBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+predictBtn.Font = Enum.Font.GothamBold
+predictBtn.TextSize = 16
+predictBtn.BorderSizePixel = 0
+
+local centerBtn = Instance.new("TextButton", mainFrame)
+centerBtn.Size = UDim2.new(1, -20, 0, 35)
+centerBtn.Position = UDim2.new(0, 10, 0, 75)
+centerBtn.Text = "📍 Center Pet"
+centerBtn.BackgroundColor3 = Color3.fromRGB(55, 190, 90)
+centerBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+centerBtn.Font = Enum.Font.GothamBold
+centerBtn.TextSize = 16
+centerBtn.BorderSizePixel = 0
+
+-- Predict Egg Function
+local function predictEgg()
+	local predictFunc = ReplicatedStorage:FindFirstChild("PredictEgg")
+	if predictFunc and predictFunc:IsA("RemoteFunction") then
+		local result = predictFunc:InvokeServer()
+		predictBtn.Text = "🎉 " .. tostring(result)
+	else
+		predictBtn.Text = "❌ Prediction Failed"
+	end
 end
 
--- Pet Lock Button
-createButton("🔒 Toggle Pet Center Lock", UDim2.new(0, 50, 0, 50), function()
-	petLockEnabled = not petLockEnabled
-	game.StarterGui:SetCore("SendNotification", {
-		Title = "Pet Lock",
-		Text = petLockEnabled and "Enabled" or "Disabled"
-	})
-end)
+-- Center Pet Function (Orange Tabby or Mooncat)
+local function centerPet()
+	local garden = workspace:FindFirstChild("Garden")
+	local petsFolder = workspace:FindFirstChild("Pets")
+	if not garden or not petsFolder then return end
 
--- Egg Predictor Button
-createButton("🐣 Predict Egg Pet", UDim2.new(0, 50, 0, 100), function()
-	petPredictionEnabled = true
-	game.StarterGui:SetCore("SendNotification", {
-		Title = "Pet Predictor",
-		Text = "Monitoring Eggs..."
-	})
-end)
+	local middle = garden:FindFirstChild("Middle")
+	if not middle then return end
 
--- 🌀 Pet Lock Loop
-task.spawn(function()
-	while true do
-		if petLockEnabled then
-			for _, obj in pairs(workspace:GetChildren()) do
-				if obj:IsA("Model") and obj:FindFirstChild("HumanoidRootPart") and obj.Name ~= player.Name then
-					-- Teleport pet to garden center
-					pcall(function()
-						obj:MoveTo(gardenCenter)
-					end)
-				end
-			end
+	local preferredPets = {"Orange Tabby", "Mooncat"}
+	for _, petName in ipairs(preferredPets) do
+		local pet = petsFolder:FindFirstChild(petName)
+		if pet and pet:IsDescendantOf(petsFolder) then
+			pet:SetPrimaryPartCFrame(CFrame.new(middle.Position + Vector3.new(0, 1.5, 0)))
+			centerBtn.Text = "✅ " .. petName .. " centered"
+			return
 		end
-		task.wait(1)
 	end
-end)
 
--- 🔮 Egg Predictor Loop
-task.spawn(function()
-	while true do
-		if petPredictionEnabled then
-			for _, egg in pairs(workspace:GetDescendants()) do
-				if egg:IsA("Model") and egg.Name:lower():find("egg") then
-					local hatchInfo = egg:FindFirstChild("PetToHatch")
-					if hatchInfo and hatchInfo:IsA("StringValue") then
-						game.StarterGui:SetCore("SendNotification", {
-							Title = "Prediction",
-							Text = "Pet: " .. hatchInfo.Value
-						})
-						petPredictionEnabled = false -- Only show once per click
-					end
-				end
-			end
-		end
-		task.wait(1)
-	end
-end)
+	centerBtn.Text = "❌ Pet not found"
+end
+
+-- Bind Buttons
+predictBtn.MouseButton1Click:Connect(predictEgg)
+centerBtn.MouseButton1Click:Connect(centerPet)
